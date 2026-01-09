@@ -1,5 +1,7 @@
-package com.example.maatsupervisor.ui.screens
+package com.example.maatsupervisor.ui.eme.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,18 +20,19 @@ import com.example.maatsupervisor.data.model.DashboardSummary
 import com.example.maatsupervisor.data.model.TodayCaseDeny
 import com.example.maatsupervisor.network.CaseDenyApi
 import com.example.maatsupervisor.network.DashboardSummaryApi
-import com.example.maatsupervisor.ui.components.CaseDenyActionSheet
-import com.example.maatsupervisor.ui.components.CaseDenyBottomSheet
-import com.example.maatsupervisor.ui.components.CaseDenyCard
-import com.example.maatsupervisor.ui.components.TodayCaseDenyList
+import com.example.maatsupervisor.ui.eme.components.DashboardCards
+import com.example.maatsupervisor.ui.eme.screens.components.CaseDenyBottomSheet
+import com.example.maatsupervisor.ui.eme.screens.components.CaseDenyCard
 import kotlinx.coroutines.launch
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
+fun EmeHomeScreen(
     navController: NavController,
     onThemeChange: (Boolean) -> Unit
 ) {
+
     val context = LocalContext.current
     val session = remember { UserSession(context) }
     val themeSession = remember { ThemeSession(context) }
@@ -45,11 +48,13 @@ fun HomeScreen(
     var summary by remember { mutableStateOf<DashboardSummary?>(null) }
     var todayCaseDeny by remember { mutableStateOf<List<TodayCaseDeny>>(emptyList()) }
 
-    // ⭐ SINGLE SOURCE OF TRUTH FOR MODAL
+    // ⭐ REQUIRED STATES
+    var showCaseDenyModal by remember { mutableStateOf(false) }
     var selectedCase by remember { mutableStateOf<TodayCaseDeny?>(null) }
 
     /* ---------------- LOAD DATA ---------------- */
     LaunchedEffect(Unit) {
+
         name = session.getUserName()
         position = session.getDesignation()
         darkMode = themeSession.isDark()
@@ -92,7 +97,7 @@ fun HomeScreen(
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        navController.navigate("vehicles")
+                        navController.navigate("eme_vehicles")
                     }
                 )
 
@@ -128,9 +133,9 @@ fun HomeScreen(
                 TopAppBar(
                     title = { Text("Dashboard") },
                     navigationIcon = {
-                        IconButton(onClick = {
-                            scope.launch { drawerState.open() }
-                        }) {
+                        IconButton(
+                            onClick = { scope.launch { drawerState.open() } }
+                        ) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
                     }
@@ -145,10 +150,35 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
-                // 🔹 Dashboard summary
+                // 🔹 DASHBOARD + BADGE
                 item {
                     summary?.let {
+
                         DashboardCards(it)
+
+                        if (todayCaseDeny.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                BadgedBox(
+                                    badge = {
+                                        Badge {
+                                            Text(todayCaseDeny.size.toString())
+                                        }
+                                    }
+                                ) {
+                                    Button(
+                                        onClick = { showCaseDenyModal = true }
+                                    ) {
+                                        Text("Case Deny")
+                                    }
+                                }
+                            }
+                        }
+
                     } ?: Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -158,34 +188,62 @@ fun HomeScreen(
                         CircularProgressIndicator()
                     }
                 }
+            }
+        }
+    }
 
-                // 🔹 Title
-                if (todayCaseDeny.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Today Case Deny",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+    /* ---------------- FULL SCREEN CASE DENY MODAL ---------------- */
+    if (showCaseDenyModal) {
+        ModalBottomSheet(
+            onDismissRequest = { showCaseDenyModal = false },
+            modifier = Modifier.fillMaxSize(),
+            dragHandle = null
+        ) {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Today Case Deny",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    TextButton(onClick = { showCaseDenyModal = false }) {
+                        Text("Close")
                     }
                 }
 
-                // 🔹 Today Case Deny list (ONLY ONCE)
-                items(todayCaseDeny) { item ->
-                    CaseDenyCard(
-                        item = item,
-                        onClick = {
-                            if (!item.isExpired) {
-                                selectedCase = item
+                Spacer(Modifier.height(8.dp))
+                Divider()
+                Spacer(Modifier.height(8.dp))
+
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(todayCaseDeny) { item ->
+                        CaseDenyCard(
+                            item = item,
+                            onClick = {
+                                if (!item.isExpired) {
+                                    selectedCase = item
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
     }
 
-    /* ---------------- BOTTOM SHEET ---------------- */
+    /* ---------------- ACTION BOTTOM SHEET ---------------- */
     selectedCase?.let {
         CaseDenyBottomSheet(
             item = it,
@@ -200,14 +258,16 @@ fun HomeScreen(
             title = { Text("Confirm Logout") },
             text = { Text("Are you sure you want to logout?") },
             confirmButton = {
-                TextButton(onClick = {
-                    scope.launch {
-                        session.logout()
-                        navController.navigate("login") {
-                            popUpTo("home") { inclusive = true }
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            session.logout()
+                            navController.navigate("login") {
+                                popUpTo("eme_home") { inclusive = true }
+                            }
                         }
                     }
-                }) {
+                ) {
                     Text("Logout")
                 }
             },
@@ -219,4 +279,3 @@ fun HomeScreen(
         )
     }
 }
-

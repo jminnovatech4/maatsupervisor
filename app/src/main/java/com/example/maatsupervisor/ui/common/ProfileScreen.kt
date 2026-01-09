@@ -1,4 +1,4 @@
-package com.example.maatsupervisor.ui.screens
+package com.example.maatsupervisor.ui.common
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons

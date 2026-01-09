@@ -1,4 +1,4 @@
-package com.example.maatsupervisor.ui.screens
+package com.example.maatsupervisor.ui.common
 
 import android.Manifest
 import android.content.pm.PackageManager

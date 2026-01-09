@@ -16,7 +16,7 @@ class UserSession(private val context: Context) {
         val DESIGNATION = stringPreferencesKey("designation")
     }
 
-    /* ---------------- LOGIN SAVE ---------------- */
+    /* ---------------- SAVE LOGIN ---------------- */
 
     suspend fun saveLogin(
         gid: String,
@@ -33,25 +33,17 @@ class UserSession(private val context: Context) {
 
     /* ---------------- GETTERS ---------------- */
 
-    suspend fun isLoggedIn(): Boolean {
-        val prefs = context.dataStore.data.first()
-        return prefs[IS_LOGGED_IN] ?: false
-    }
+    suspend fun isLoggedIn(): Boolean =
+        context.dataStore.data.first()[IS_LOGGED_IN] ?: false
 
-    suspend fun getGid(): String {
-        val prefs = context.dataStore.data.first()
-        return prefs[GID] ?: ""
-    }
+    suspend fun getGid(): String =
+        context.dataStore.data.first()[GID] ?: ""
 
-    suspend fun getUserName(): String {
-        val prefs = context.dataStore.data.first()
-        return prefs[NAME] ?: ""
-    }
+    suspend fun getUserName(): String =
+        context.dataStore.data.first()[NAME] ?: ""
 
-    suspend fun getDesignation(): String {
-        val prefs = context.dataStore.data.first()
-        return prefs[DESIGNATION] ?: ""
-    }
+    suspend fun getDesignation(): String =
+        context.dataStore.data.first()[DESIGNATION] ?: ""
 
     /* ---------------- LOGOUT ---------------- */
 

@@ -1,4 +1,4 @@
-package com.example.maatsupervisor.ui.screens
+package com.example.maatsupervisor.ui.eme.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,8 +15,7 @@ import com.example.maatsupervisor.data.model.VehicleDashboard
 import com.example.maatsupervisor.network.CaseDenyApi
 import com.example.maatsupervisor.network.DashboardApi
 import com.example.maatsupervisor.network.DashboardSummaryApi
-import com.example.maatsupervisor.ui.components.DashboardSummary
-import com.example.maatsupervisor.ui.components.VehicleCard
+import com.example.maatsupervisor.ui.eme.screens.components.VehicleCard
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

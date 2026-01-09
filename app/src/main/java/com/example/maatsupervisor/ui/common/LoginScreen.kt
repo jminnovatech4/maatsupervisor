@@ -1,4 +1,4 @@
-package com.example.maatsupervisor.ui.screens
+package com.example.maatsupervisor.ui.common
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -11,104 +11,98 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.maatsupervisor.data.UserSession
 import com.example.maatsupervisor.network.LoginApi
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
+
+    var gid by remember { mutableStateOf("") }
+    var passcode by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val session = remember { UserSession(context) }
     val scope = rememberCoroutineScope()
 
-    var gid by remember { mutableStateOf("") }
-    var passcode by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf("") }
+    Scaffold { padding ->
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(8.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
         ) {
+
             Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
                 Text(
-                    text = "MAAT Supervisor",
-                    style = MaterialTheme.typography.headlineMedium
+                    text = "Supervisor Login",
+                    style = MaterialTheme.typography.headlineSmall
                 )
-
-                Spacer(Modifier.height(24.dp))
 
                 OutlinedTextField(
                     value = gid,
                     onValueChange = { gid = it },
                     label = { Text("GID") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                Spacer(Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = passcode,
                     onValueChange = { passcode = it },
                     label = { Text("Passcode") },
+                    singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(Modifier.height(16.dp))
-
-                if (errorMsg.isNotEmpty()) {
-                    Text(
-                        text = errorMsg,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(Modifier.height(8.dp))
+                if (error.isNotEmpty()) {
+                    Text(error, color = MaterialTheme.colorScheme.error)
                 }
 
                 Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !loading,
                     onClick = {
-                        errorMsg = ""
-                        isLoading = true
+                        loading = true
+                        error = ""
 
-                        LoginApi.login(gid, passcode) { success, json ->
-                            scope.launch(Dispatchers.Main) {
-                                isLoading = false
+                        LoginApi.login(gid, passcode) { success, response ->
+                            loading = false
 
-                                if (success && json != null && json.has("data")) {
-                                    val data = json.getJSONObject("data")
+                            if (success && response?.optBoolean("status") == true) {
+                                val data = response.getJSONObject("data")
 
+                                scope.launch {
                                     session.saveLogin(
                                         gid = data.getString("gid"),
                                         name = data.getString("name"),
                                         designation = data.getString("designation")
                                     )
 
-
-                                    navController.navigate("home") {
-                                        popUpTo("login") { inclusive = true }
+                                    when (data.getString("designation")) {
+                                        "EME" -> navController.navigate("eme_home") {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                        "PM" -> navController.navigate("pm_home")
+                                        "RM" -> navController.navigate("rm_home")
                                     }
-                                } else {
-                                    errorMsg =
-                                        json?.optString("message") ?: "Login failed"
                                 }
+                            } else {
+                                error = response?.optString("message") ?: "Login failed"
                             }
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading
+                    }
                 ) {
-                    if (isLoading) {
+                    if (loading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp
