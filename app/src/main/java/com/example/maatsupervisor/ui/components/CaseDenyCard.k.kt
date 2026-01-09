@@ -1,5 +1,7 @@
 package com.example.maatsupervisor.ui.components
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -10,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.example.maatsupervisor.data.model.TodayCaseDeny
 import com.example.maatsupervisor.data.model.formatRemaining
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CaseDenyCard(
     item: TodayCaseDeny,
